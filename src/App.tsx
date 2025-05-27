@@ -30,9 +30,9 @@ import React, { useEffect, useState } from "react";
 const socket = new WebSocket("ws://localhost:8000/ws");
 
 const COLORS: Record<string, string> = {
-  "01": "bg-pink-400",
-  "02": "bg-white",
-  "03": "bg-sky-400",
+  "01": "pink",
+  "02": "white",
+  "03": "skyblue",
 };
 
 function App() {
@@ -41,15 +41,15 @@ function App() {
     const [userId] = useState(() => `user_${Math.random().toString(36).substring(2, 9)}`);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ action: "get_colors", payload: {} }));
-            }
-        }, 1000);
+        //const interval = setInterval(() => {
+        //    if (socket.readyState === WebSocket.OPEN) {
+        //        socket.send(JSON.stringify({ command: "get_colors", payload: {} }));
+        //    }
+        //}, 1000);
 
         socket.onopen = () => {
             console.log("WebSocket connected.");
-            socket.send(JSON.stringify({ action: "get_colors", payload: {} }));
+            socket.send(JSON.stringify({ command: "register", payload: {} }));
         };
 
         socket.onmessage = (event) => {
@@ -63,15 +63,16 @@ function App() {
             }
           };
 
+
         // const interval = setInterval(() => {
         //     socket.send(JSON.stringify({ action: "get_colors", payload: {} }));
         // }, 1000);
 
         // return () => clearInterval(interval);
-        
-        
+
+
         return () => {
-            clearInterval(interval);
+            //clearInterval(interval);
             // socket.close();
         };
     }, []);
@@ -79,16 +80,16 @@ function App() {
     const handleSquareClick = (index: number) => {
         socket.send(
             JSON.stringify({
-                action: "update_color",
-                payload: { id: index + 1, color: selectedColor },
+                command: "set_value",
+                payload: { id: index + 1/*, color: selectedColor */},
             })
         );
-        socket.send(
-            JSON.stringify({
-                action: "broadcast",
-                payload: `${userId} updated square ${index + 1}`,
-            })
-        );
+        //socket.send(
+        //    JSON.stringify({
+        //        action: "broadcast",
+        //        payload: `${userId} updated square ${index + 1}`,
+        //    })
+        //);
     };
 
     const handleColorSelect = (color: string) => {
@@ -96,8 +97,8 @@ function App() {
         setSelectedColor(color);
         socket.send(
             JSON.stringify({
-                action: "user_color",
-                payload: { user_id: userId, color },
+                command: "set_color",
+                payload: { color_id: color },
             })
         );
     };
@@ -107,8 +108,10 @@ function App() {
         <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: 24 }}>Цветные квадраты</h1>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 64px)", gap: 8, marginBottom: 24 }}>
             {squares.map((color, idx) => (
+
             <div
                 key={idx}
+
                 style={{ width: 64, height: 64, border: "1px solid #000", borderRadius: 4, backgroundColor: COLORS[color], cursor: "pointer" }}
                 onClick={() => handleSquareClick(idx)}
             />

@@ -25,7 +25,7 @@
 
 // export default App;
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const socket = new WebSocket("ws://localhost:8000/ws");
 
@@ -39,68 +39,78 @@ function App() {
     const [squares, setSquares] = useState<string[]>(Array(20).fill("02"));
     const [selectedColor, setSelectedColor] = useState<string>("01");
     const [userId] = useState(() => `user_${Math.random().toString(36).substring(2, 9)}`);
+    const socketRef = useRef<WebSocket | null>(null);
+    const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        //const interval = setInterval(() => {
-        //    if (socket.readyState === WebSocket.OPEN) {
-        //        socket.send(JSON.stringify({ command: "get_colors", payload: {} }));
-        //    }
-        //}, 1000);
+    const setupSocket = () => {
+        const socket = new WebSocket("ws://localhost:8000/ws");
+        socketRef.current = socket;
 
         socket.onopen = () => {
-            console.log("WebSocket connected.");
-            socket.send(JSON.stringify({ command: "register", payload: {} }));
+        console.log("[WS] Connected");
+        socket.send(JSON.stringify({ command: "register", payload: {} }));
+        if (reconnectTimer.current) {
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = null;
+        }
         };
 
         socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (Array.isArray(data)) {
-                    setSquares(data.map((item: any) => item[1]));
-                }
-            } catch (err) {
-                console.warn("Invalid JSON:", event.data);
+        try {
+            const data = JSON.parse(event.data);
+            if (Array.isArray(data)) {
+            setSquares(data.map((item: any) => item[1]));
             }
-          };
+        } catch (err) {
+            console.warn("Invalid JSON:", event.data);
+        }
+        };
 
+        socket.onerror = () => {
+        console.error("[WS] Error");
+        socket.close();
+        };
 
-        // const interval = setInterval(() => {
-        //     socket.send(JSON.stringify({ action: "get_colors", payload: {} }));
-        // }, 1000);
+        socket.onclose = () => {
+        console.warn("[WS] Disconnected. Reconnecting in 3s...");
+        reconnectTimer.current = setTimeout(() => {
+            setupSocket();
+        }, 3000);
+        };
+    };
 
-        // return () => clearInterval(interval);
-
+    useEffect(() => {
+        setupSocket();
 
         return () => {
-            //clearInterval(interval);
-            // socket.close();
+        if (socketRef.current) socketRef.current.close();
+        if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
         };
     }, []);
 
+    const sendMessage = (data: object) => {
+        const socket = socketRef.current;
+        if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(data));
+        } else {
+        console.warn("[WS] Not connected, message not sent:", data);
+        }
+    };
+
     const handleSquareClick = (index: number) => {
-        socket.send(
-            JSON.stringify({
-                command: "set_value",
-                payload: { id: index + 1/*, color: selectedColor */},
-            })
-        );
-        //socket.send(
-        //    JSON.stringify({
-        //        action: "broadcast",
-        //        payload: `${userId} updated square ${index + 1}`,
-        //    })
-        //);
+        sendMessage({
+        command: "set_value",
+        payload: { id: index + 1 },
+        });
     };
 
     const handleColorSelect = (color: string) => {
         console.log("change color");
         setSelectedColor(color);
-        socket.send(
-            JSON.stringify({
-                command: "set_color",
-                payload: { color_id: color },
-            })
-        );
+        sendMessage({
+        command: "set_color",
+        payload: { color_id: color },
+        });
     };
 
     return (

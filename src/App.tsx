@@ -27,7 +27,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-const socket = new WebSocket("ws://localhost:8000/ws");
+const socket = new WebSocket("ws://127.0.0.1:51080");
 
 const COLORS: Record<string, string> = {
   "01": "pink",
@@ -43,7 +43,7 @@ function App() {
     const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
 
     const setupSocket = () => {
-        const socket = new WebSocket("ws://localhost:8000/ws");
+        const socket = new WebSocket("ws://127.0.0.1:51080");
         socketRef.current = socket;
 
         socket.onopen = () => {
@@ -58,6 +58,9 @@ function App() {
         socket.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
+
+            console.log(data)
+
             if (Array.isArray(data)) {
             setSquares(data.map((item: any) => item[1]));
             }
@@ -98,6 +101,8 @@ function App() {
     };
 
     const handleSquareClick = (index: number) => {
+        console.log(`paint cell`, index)
+
         sendMessage({
         command: "set_value",
         payload: { id: index + 1 },

@@ -1,3 +1,15 @@
+### Начало работы
+* Установить node.js
+* В консоли проекта
+```
+npm install
+```
+* npm start
+
+### МБ Нужно задавать сервак не из кода
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
